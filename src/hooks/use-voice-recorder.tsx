@@ -41,7 +41,9 @@ export const useVoiceRecorder = (options?: VoiceRecorderOptions): VoiceRecorderR
 
   // Check if the browser supports the Web Speech API
   const isSpeechRecognitionSupported = () => {
-    return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+    return typeof window !== 'undefined' && 
+           (window.SpeechRecognition !== undefined || 
+            window.webkitSpeechRecognition !== undefined);
   };
 
   // Cleanup function
@@ -176,117 +178,145 @@ export const useVoiceRecorder = (options?: VoiceRecorderOptions): VoiceRecorderR
     setTranscriptionProgress(0);
     
     try {
-      // If Web Speech API is supported, we'll use that
+      let transcript = "";
+      
+      // First try: Web Speech API
       if (isSpeechRecognitionSupported()) {
-        // Create progressive updates to transcription progress
-        const progressInterval = setInterval(() => {
-          setTranscriptionProgress(prev => {
-            const newProgress = prev + 5;
-            return newProgress <= 90 ? newProgress : prev;
-          });
-        }, 300);
-        
-        // Get transcript from recorded audio
-        const transcript = await processAudioWithSpeechRecognition(audioBlob);
-        
-        clearInterval(progressInterval);
-        setTranscriptionProgress(100);
-        setTranscript(transcript);
-        
-        if (options?.onTranscriptionComplete) {
-          options.onTranscriptionComplete(transcript);
+        try {
+          // Create progressive updates to transcription progress
+          const progressInterval = setInterval(() => {
+            setTranscriptionProgress(prev => {
+              const newProgress = prev + 5;
+              return newProgress <= 90 ? newProgress : prev;
+            });
+          }, 300);
+          
+          // Attempt native browser transcription
+          transcript = await processAudioWithSpeechRecognition(audioBlob);
+          
+          clearInterval(progressInterval);
+          setTranscriptionProgress(100);
+          
+          // If we got a meaningful transcript, use it
+          if (transcript && !transcript.includes("Please edit this text")) {
+            setTranscript(transcript);
+            if (options?.onTranscriptionComplete) {
+              options.onTranscriptionComplete(transcript);
+            }
+            setIsTranscribing(false);
+            return;
+          }
+        } catch (error) {
+          console.error("Native transcription failed:", error);
+          // Continue to fallback method
         }
-      } else {
-        // Fallback for browsers that don't support Web Speech API
-        await simulateTranscription();
       }
+      
+      // Fallback: Manual transcription prompt
+      await simulateTranscription();
+      
     } catch (error) {
       console.error("Transcription error:", error);
       toast({
         title: "Transcription Failed",
-        description: "Could not transcribe your audio. Please try again or enter text manually.",
+        description: "Could not transcribe your audio. Please enter text manually.",
         variant: "destructive",
       });
+      
+      // Even if transcription fails, still allow user to manually input
+      setTranscript("Your recording has been saved. Please edit this text manually.");
+      if (options?.onTranscriptionComplete) {
+        options.onTranscriptionComplete("Your recording has been saved. Please edit this text manually.");
+      }
     } finally {
       setIsTranscribing(false);
     }
   };
   
   const processAudioWithSpeechRecognition = (audioBlob: Blob): Promise<string> => {
-    return new Promise((resolve) => {
-      // Skip creating audio element to prevent auto-playback
-      
-      // Initialize speech recognition
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognitionRef.current = recognition;
-      
-      recognition.lang = 'en-US';
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 3;
-      
-      let finalTranscript = '';
-      
-      recognition.onresult = (event: any) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
+    return new Promise((resolve, reject) => {
+      try {
+        // Skip creating audio element to prevent auto-playback
+        
+        // Initialize speech recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          reject(new Error("Speech Recognition not supported"));
+          return;
+        }
+        
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 3;
+        
+        let finalTranscript = '';
+        
+        recognition.onresult = (event: any) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + ' ';
+            }
           }
-        }
+          
+          // Update the transcription as it progresses
+          setTranscript(finalTranscript);
+        };
         
-        // Update the transcription as it progresses
-        setTranscript(finalTranscript);
-      };
-      
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
-        recognition.stop();
-        
-        if (finalTranscript) {
-          resolve(finalTranscript.trim());
-        } else {
-          // If no transcript was generated, use the fallback method
-          simulateTranscription().then(() => {
-            resolve("Please edit this text manually as transcription couldn't be completed automatically.");
-          });
-        }
-      };
-      
-      recognition.onend = () => {
-        if (finalTranscript) {
-          resolve(finalTranscript.trim());
-        } else {
-          resolve("Your recording has been saved. Please add text manually.");
-        }
-      };
-      
-      // Start recognition but don't auto-play audio
-      recognition.start();
-      
-      // Set a reasonable timeout for recognition to complete
-      setTimeout(() => {
-        if (recognition.readyState !== 'closed') {
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error', event.error);
           recognition.stop();
-        }
-      }, 15000); // Allow more time for transcription (15 seconds)
+          reject(new Error(`Speech recognition error: ${event.error}`));
+        };
+        
+        recognition.onend = () => {
+          if (finalTranscript) {
+            resolve(finalTranscript.trim());
+          } else {
+            resolve("Your recording has been saved. Please add text manually.");
+          }
+        };
+        
+        // Start recognition but don't auto-play audio
+        recognition.start();
+        
+        // Set a reasonable timeout for recognition to complete
+        setTimeout(() => {
+          if (recognition && recognition.readyState !== 'closed') {
+            recognition.stop();
+          }
+        }, 15000); // Allow more time for transcription (15 seconds)
+      } catch (error) {
+        reject(error);
+      }
     });
   };
 
   const simulateTranscription = async () => {
-    // Fallback for browsers without speech recognition
+    // Better fallback for browsers without speech recognition
     // Mock transcription process with progress
     for (let i = 0; i <= 100; i += 10) {
       setTranscriptionProgress(i);
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    setTranscript("Your browser doesn't support automatic transcription. Please edit this text manually.");
+    const fallbackText = "Please edit this text manually. Your browser doesn't support automatic transcription.";
+    setTranscript(fallbackText);
     
     if (options?.onTranscriptionComplete) {
-      options.onTranscriptionComplete("Your browser doesn't support automatic transcription. Please edit this text manually.");
+      options.onTranscriptionComplete(fallbackText);
     }
+    
+    // Show a helpful toast
+    toast({
+      title: "Manual Transcription Required",
+      description: "Your recording was saved but your browser doesn't support automatic transcription. Please type your journal entry manually.",
+      duration: 5000,
+    });
   };
 
   return {
