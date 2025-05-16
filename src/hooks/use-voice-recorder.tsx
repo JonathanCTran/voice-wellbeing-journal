@@ -212,11 +212,12 @@ export const useVoiceRecorder = (options?: VoiceRecorderOptions): VoiceRecorderR
     }
   };
   
-  // Process the audio using Web Speech API
+  // Modified to prevent auto-playback
   const processAudioWithSpeechRecognition = (audioBlob: Blob): Promise<string> => {
     return new Promise((resolve) => {
-      // Create an audio element to play the recorded audio
+      // Create an audio element but don't auto-play it
       const audio = new Audio(URL.createObjectURL(audioBlob));
+      audio.preload = "metadata";
       
       // Initialize speech recognition
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -255,21 +256,13 @@ export const useVoiceRecorder = (options?: VoiceRecorderOptions): VoiceRecorderR
         resolve(finalTranscript || "No speech detected.");
       };
       
-      // Start recognition when audio starts playing
-      audio.onplay = () => {
-        recognition.start();
-      };
+      // Start recognition when function is called but don't play audio
+      recognition.start();
       
-      // Stop recognition when audio ends
-      audio.onended = () => {
-        setTimeout(() => recognition.stop(), 1000); // Give a little extra time for processing
-      };
-      
-      // Play the audio to start the process
-      audio.play().catch(error => {
-        console.error("Error playing audio for transcription:", error);
-        resolve("Could not process audio for transcription.");
-      });
+      // Set a timeout to stop recognition after the audio duration
+      setTimeout(() => {
+        recognition.stop();
+      }, 10000); // Assume max 10 seconds of audio, adjust as needed
     });
   };
 

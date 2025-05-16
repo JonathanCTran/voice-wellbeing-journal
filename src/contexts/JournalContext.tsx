@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { JournalEntry, Sentiment } from "../types";
 import { useAuth } from "./AuthContext";
