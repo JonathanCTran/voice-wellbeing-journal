@@ -1,35 +1,8 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { JournalEntry, Sentiment } from "../types";
 import { useAuth } from "./AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-
-// Generate mock entries
-const generateMockEntries = (userId: string): JournalEntry[] => {
-  const sentiments: Sentiment[] = [
-    { score: 0.8, magnitude: 0.9, label: "positive" },
-    { score: -0.6, magnitude: 0.7, label: "negative" },
-    { score: 0.2, magnitude: 0.3, label: "neutral" },
-    { score: 0.7, magnitude: 0.8, label: "positive" },
-    { score: -0.5, magnitude: 0.6, label: "negative" },
-  ];
-
-  const transcripts = [
-    "Today was a really great day. I accomplished a lot and felt very productive.",
-    "I'm feeling stressed about the upcoming deadline. I don't think I'll finish in time.",
-    "Just an average day today. Nothing special happened.",
-    "I'm excited about the weekend plans with friends. It's going to be amazing!",
-    "Had an argument with a colleague today. It made me feel quite frustrated.",
-  ];
-
-  return Array.from({ length: 5 }, (_, i) => ({
-    id: `entry-${i + 1}`,
-    userId,
-    transcript: transcripts[i],
-    sentiment: sentiments[i],
-    createdAt: new Date(Date.now() - i * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - i * 86400000).toISOString(),
-  }));
-};
 
 interface JournalContextProps {
   entries: JournalEntry[];
@@ -48,7 +21,8 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (authState.user) {
       // Load entries from local storage if they exist
-      const storedEntries = localStorage.getItem(`moodJournal_${authState.user.id}_entries`);
+      const storageKey = `moodJournal_${authState.user.id}_entries`;
+      const storedEntries = localStorage.getItem(storageKey);
       
       if (storedEntries) {
         try {
@@ -57,18 +31,12 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
           console.error("Failed to parse stored entries:", error);
           // Set to empty array for new user
           setEntries([]);
-          localStorage.setItem(
-            `moodJournal_${authState.user.id}_entries`, 
-            JSON.stringify([])
-          );
+          localStorage.setItem(storageKey, JSON.stringify([]));
         }
       } else {
         // Initialize with empty array for new user
         setEntries([]);
-        localStorage.setItem(
-          `moodJournal_${authState.user.id}_entries`, 
-          JSON.stringify([])
-        );
+        localStorage.setItem(storageKey, JSON.stringify([]));
       }
     } else {
       setEntries([]);

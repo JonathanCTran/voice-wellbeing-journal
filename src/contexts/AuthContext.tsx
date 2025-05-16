@@ -1,13 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { AuthState, User } from "../types";
-
-// Mock user data for demonstration
-const mockUser: User = {
-  id: "1",
-  name: "Demo User",
-  email: "demo@example.com",
-};
+import { AuthState, User, UserCredentials } from "../types";
+import { useToast } from "@/components/ui/use-toast";
 
 interface AuthContextProps {
   authState: AuthState;
@@ -24,9 +18,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: false,
     isLoading: true,
   });
+  const { toast } = useToast();
 
+  // Load user data from localStorage on initial load
   useEffect(() => {
-    // Check for existing session in localStorage
     const storedUser = localStorage.getItem("moodJournalUser");
     
     if (storedUser) {
@@ -55,37 +50,102 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Load user credentials from localStorage
+  const getUserCredentials = (): Record<string, UserCredentials> => {
+    const storedCredentials = localStorage.getItem("moodJournalCredentials");
+    if (storedCredentials) {
+      try {
+        return JSON.parse(storedCredentials);
+      } catch (error) {
+        console.error("Failed to parse stored credentials:", error);
+        return {};
+      }
+    }
+    return {};
+  };
+
+  // Save user credentials to localStorage
+  const saveUserCredentials = (credentials: Record<string, UserCredentials>) => {
+    localStorage.setItem("moodJournalCredentials", JSON.stringify(credentials));
+  };
+
   const login = async (email: string, password: string) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    if (email && password) {
-      localStorage.setItem("moodJournalUser", JSON.stringify(mockUser));
-      setAuthState({
-        user: mockUser,
-        isAuthenticated: true,
-        isLoading: false,
+    const credentials = getUserCredentials();
+    const userCredential = credentials[email];
+    
+    if (!userCredential) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: "User not found. Please check your email or sign up.",
       });
-    } else {
-      throw new Error("Invalid credentials");
+      throw new Error("User not found");
     }
+    
+    if (userCredential.password !== password) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: "Incorrect password. Please try again.",
+      });
+      throw new Error("Incorrect password");
+    }
+    
+    // Find user by email
+    const userInfo: User = {
+      id: email.replace(/[^a-zA-Z0-9]/g, "-"),
+      name: email.split("@")[0],
+      email: email,
+    };
+    
+    localStorage.setItem("moodJournalUser", JSON.stringify(userInfo));
+    setAuthState({
+      user: userInfo,
+      isAuthenticated: true,
+      isLoading: false,
+    });
   };
 
   const signup = async (name: string, email: string, password: string) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    if (name && email && password) {
-      const newUser = { ...mockUser, name, email };
-      localStorage.setItem("moodJournalUser", JSON.stringify(newUser));
-      setAuthState({
-        user: newUser,
-        isAuthenticated: true,
-        isLoading: false,
+    const credentials = getUserCredentials();
+    
+    if (credentials[email]) {
+      toast({
+        variant: "destructive",
+        title: "Signup failed",
+        description: "Email already exists. Please use a different email or login.",
       });
-    } else {
-      throw new Error("Invalid signup information");
+      throw new Error("Email already exists");
     }
+    
+    // Create new user credential
+    credentials[email] = { email, password };
+    saveUserCredentials(credentials);
+    
+    // Create new user
+    const newUser: User = {
+      id: email.replace(/[^a-zA-Z0-9]/g, "-"),
+      name: name || email.split("@")[0],
+      email: email,
+    };
+    
+    localStorage.setItem("moodJournalUser", JSON.stringify(newUser));
+    setAuthState({
+      user: newUser,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    
+    toast({
+      title: "Account created",
+      description: "Your account has been created successfully.",
+    });
   };
 
   const logout = () => {

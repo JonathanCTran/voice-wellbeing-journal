@@ -29,6 +29,11 @@ export type AuthState = {
 
 export type RecordingState = 'idle' | 'recording' | 'paused' | 'stopped';
 
+export interface UserCredentials {
+  email: string;
+  password: string;
+}
+
 // Add Web Speech API TypeScript definitions
 declare global {
   interface Window {

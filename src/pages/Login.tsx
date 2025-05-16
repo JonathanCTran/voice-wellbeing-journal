@@ -37,12 +37,8 @@ const Login = () => {
         description: "You've successfully logged in.",
       });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: "Please check your credentials and try again.",
-      });
-    } finally {
+      // Error handling is done in the context
+      console.error("Login error:", error);
       setIsLoading(false);
     }
   };
@@ -59,12 +55,8 @@ const Login = () => {
         description: "Your account has been created successfully.",
       });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Signup failed",
-        description: "Please check your information and try again.",
-      });
-    } finally {
+      // Error handling is done in the context
+      console.error("Signup error:", error);
       setIsLoading(false);
     }
   };
