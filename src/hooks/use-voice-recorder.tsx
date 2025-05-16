@@ -181,7 +181,7 @@ export const useVoiceRecorder = (options?: VoiceRecorderOptions): VoiceRecorderR
         // Create progressive updates to transcription progress
         const progressInterval = setInterval(() => {
           setTranscriptionProgress(prev => {
-            const newProgress = prev + 10;
+            const newProgress = prev + 5;
             return newProgress <= 90 ? newProgress : prev;
           });
         }, 300);
@@ -212,12 +212,9 @@ export const useVoiceRecorder = (options?: VoiceRecorderOptions): VoiceRecorderR
     }
   };
   
-  // Modified to prevent auto-playback
   const processAudioWithSpeechRecognition = (audioBlob: Blob): Promise<string> => {
     return new Promise((resolve) => {
-      // Create an audio element but don't auto-play it
-      const audio = new Audio(URL.createObjectURL(audioBlob));
-      audio.preload = "metadata";
+      // Skip creating audio element to prevent auto-playback
       
       // Initialize speech recognition
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -226,43 +223,54 @@ export const useVoiceRecorder = (options?: VoiceRecorderOptions): VoiceRecorderR
       
       recognition.lang = 'en-US';
       recognition.continuous = true;
-      recognition.interimResults = true;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 3;
       
       let finalTranscript = '';
       
       recognition.onresult = (event: any) => {
-        let interimTranscript = '';
-        
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalTranscript += transcript + ' ';
-          } else {
-            interimTranscript += transcript;
           }
         }
         
         // Update the transcription as it progresses
-        setTranscript(finalTranscript || interimTranscript);
+        setTranscript(finalTranscript);
       };
       
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error', event.error);
         recognition.stop();
-        resolve(finalTranscript || "Could not transcribe audio.");
+        
+        if (finalTranscript) {
+          resolve(finalTranscript.trim());
+        } else {
+          // If no transcript was generated, use the fallback method
+          simulateTranscription().then(() => {
+            resolve("Please edit this text manually as transcription couldn't be completed automatically.");
+          });
+        }
       };
       
       recognition.onend = () => {
-        resolve(finalTranscript || "No speech detected.");
+        if (finalTranscript) {
+          resolve(finalTranscript.trim());
+        } else {
+          resolve("Your recording has been saved. Please add text manually.");
+        }
       };
       
-      // Start recognition when function is called but don't play audio
+      // Start recognition but don't auto-play audio
       recognition.start();
       
-      // Set a timeout to stop recognition after the audio duration
+      // Set a reasonable timeout for recognition to complete
       setTimeout(() => {
-        recognition.stop();
-      }, 10000); // Assume max 10 seconds of audio, adjust as needed
+        if (recognition.readyState !== 'closed') {
+          recognition.stop();
+        }
+      }, 15000); // Allow more time for transcription (15 seconds)
     });
   };
 
