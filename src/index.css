@@ -1,5 +1,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -94,6 +95,11 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4 {
+    font-family: 'Poppins', sans-serif;
   }
   
   .recording-pulse {
@@ -126,5 +132,43 @@
       transform: scale(0.8);
       opacity: 0;
     }
+  }
+  
+  /* Custom card animations */
+  .card-enter {
+    animation: cardEnter 0.4s ease-out forwards;
+  }
+  
+  @keyframes cardEnter {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Custom button hover effects */
+  .btn-glow:hover {
+    box-shadow: 0 0 15px rgba(74, 144, 226, 0.6);
+  }
+  
+  /* Custom gradient backgrounds */
+  .bg-gradient-subtle {
+    background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+  }
+  
+  .bg-gradient-blue {
+    background: linear-gradient(90deg, #4A90E2 0%, #5FB0F9 100%);
+  }
+  
+  /* Glass morphism */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
   }
 }
