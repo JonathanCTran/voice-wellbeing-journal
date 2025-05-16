@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from "react";
 import { RecordingState } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -215,8 +216,9 @@ export const useVoiceRecorder = (options?: VoiceRecorderOptions): VoiceRecorderR
   // Process the audio using Web Speech API
   const processAudioWithSpeechRecognition = (audioBlob: Blob): Promise<string> => {
     return new Promise((resolve) => {
-      // Create an audio element to play the recorded audio
+      // Create an audio element to play the recorded audio but mute it
       const audio = new Audio(URL.createObjectURL(audioBlob));
+      audio.muted = true; // Mute the auto playback
       
       // Initialize speech recognition
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -265,7 +267,7 @@ export const useVoiceRecorder = (options?: VoiceRecorderOptions): VoiceRecorderR
         setTimeout(() => recognition.stop(), 1000); // Give a little extra time for processing
       };
       
-      // Play the audio to start the process
+      // Play the audio to start the process (but it will be muted)
       audio.play().catch(error => {
         console.error("Error playing audio for transcription:", error);
         resolve("Could not process audio for transcription.");
