@@ -24,7 +24,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month'>('week');
 
-  // Prepare data for chart
+  // Prepare data for chart - we want chronological order for the chart
   const getChartData = () => {
     const sortedEntries = [...entries].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -64,6 +64,11 @@ const Dashboard = () => {
   const handleNewEntry = () => {
     navigate("/record");
   };
+
+  // For display we use the 5 most recent entries - get them in chronological order
+  const recentEntries = [...entries]
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .slice(-5);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 p-4">
@@ -172,7 +177,7 @@ const Dashboard = () => {
               </Button>
             </div>
             
-            <MoodEntryList entries={entries.slice(0, 5)} />
+            <MoodEntryList entries={recentEntries} />
             
             {entries.length === 0 && (
               <Card className="bg-white/90 backdrop-blur p-8 text-center">

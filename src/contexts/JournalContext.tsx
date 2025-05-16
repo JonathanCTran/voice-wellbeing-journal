@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 interface JournalContextProps {
   entries: JournalEntry[];
   addEntry: (transcript: string, audioBlob?: Blob) => Promise<void>;
+  updateEntry: (id: string, transcript: string) => Promise<void>;
   deleteEntry: (id: string) => void;
   analyzeSentiment: (text: string) => Promise<Sentiment>;
 }
@@ -121,6 +122,44 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const updateEntry = async (id: string, transcript: string) => {
+    if (!authState.user) return;
+
+    try {
+      const sentiment = await analyzeSentiment(transcript);
+      
+      const updatedEntries = entries.map(entry => {
+        if (entry.id === id) {
+          return {
+            ...entry,
+            transcript,
+            sentiment,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return entry;
+      });
+      
+      setEntries(updatedEntries);
+      localStorage.setItem(
+        `moodJournal_${authState.user.id}_entries`,
+        JSON.stringify(updatedEntries)
+      );
+
+      toast({
+        title: "Entry updated",
+        description: "Your journal entry has been updated",
+      });
+    } catch (error) {
+      console.error("Error updating entry:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update journal entry",
+      });
+    }
+  };
+
   const deleteEntry = (id: string) => {
     if (!authState.user) return;
     
@@ -138,7 +177,7 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   return (
-    <JournalContext.Provider value={{ entries, addEntry, deleteEntry, analyzeSentiment }}>
+    <JournalContext.Provider value={{ entries, addEntry, updateEntry, deleteEntry, analyzeSentiment }}>
       {children}
     </JournalContext.Provider>
   );
