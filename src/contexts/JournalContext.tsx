@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { JournalEntry, Sentiment } from "../types";
 import { useAuth } from "./AuthContext";
@@ -8,7 +9,6 @@ interface JournalContextProps {
   addEntry: (transcript: string, audioBlob?: Blob) => Promise<void>;
   deleteEntry: (id: string) => void;
   analyzeSentiment: (text: string) => Promise<Sentiment>;
-  updateEntry: (id: string, transcript: string) => void;
 }
 
 const JournalContext = createContext<JournalContextProps | undefined>(undefined);
@@ -137,38 +137,8 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
-  const updateEntry = (id: string, transcript: string) => {
-    if (!authState.user) return;
-    
-    // Find entry to update
-    const entryIndex = entries.findIndex(entry => entry.id === id);
-    if (entryIndex === -1) return;
-
-    // Update sentiment based on new transcript
-    analyzeSentiment(transcript).then(sentiment => {
-      const updatedEntries = [...entries];
-      updatedEntries[entryIndex] = {
-        ...updatedEntries[entryIndex],
-        transcript,
-        sentiment,
-        updatedAt: new Date().toISOString()
-      };
-
-      setEntries(updatedEntries);
-      localStorage.setItem(
-        `moodJournal_${authState.user.id}_entries`,
-        JSON.stringify(updatedEntries)
-      );
-
-      toast({
-        title: "Entry updated",
-        description: "Your journal entry has been updated",
-      });
-    });
-  };
-
   return (
-    <JournalContext.Provider value={{ entries, addEntry, deleteEntry, analyzeSentiment, updateEntry }}>
+    <JournalContext.Provider value={{ entries, addEntry, deleteEntry, analyzeSentiment }}>
       {children}
     </JournalContext.Provider>
   );
