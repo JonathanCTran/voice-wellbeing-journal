@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useVoiceRecorder } from "../hooks/use-voice-recorder";
 import { useJournal } from "../contexts/JournalContext";
@@ -35,6 +34,8 @@ const RecordEntry = () => {
   useEffect(() => {
     if (transcript) {
       setEditedTranscript(transcript);
+      // Automatically switch to editing mode when transcription is complete
+      setIsEditing(true);
     }
   }, [transcript]);
 
@@ -182,6 +183,7 @@ const RecordEntry = () => {
                             onChange={(e) => setEditedTranscript(e.target.value)}
                             className="h-32 mb-4"
                             placeholder="Edit your transcript here..."
+                            autoFocus
                           />
                         ) : (
                           <div className="bg-gray-50 p-3 rounded-md min-h-[80px] mb-4">

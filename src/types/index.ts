@@ -28,3 +28,11 @@ export type AuthState = {
 }
 
 export type RecordingState = 'idle' | 'recording' | 'paused' | 'stopped';
+
+// Add Web Speech API TypeScript definitions
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}

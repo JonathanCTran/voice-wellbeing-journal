@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { JournalEntry, Sentiment } from "../types";
 import { useAuth } from "./AuthContext";
@@ -48,7 +47,7 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     if (authState.user) {
-      // Load entries from local storage or use mock data
+      // Load entries from local storage if they exist
       const storedEntries = localStorage.getItem(`moodJournal_${authState.user.id}_entries`);
       
       if (storedEntries) {
@@ -56,21 +55,19 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setEntries(JSON.parse(storedEntries));
         } catch (error) {
           console.error("Failed to parse stored entries:", error);
-          // Fall back to mock entries
-          const mockEntries = generateMockEntries(authState.user.id);
-          setEntries(mockEntries);
+          // Set to empty array for new user
+          setEntries([]);
           localStorage.setItem(
             `moodJournal_${authState.user.id}_entries`, 
-            JSON.stringify(mockEntries)
+            JSON.stringify([])
           );
         }
       } else {
-        // Generate mock entries
-        const mockEntries = generateMockEntries(authState.user.id);
-        setEntries(mockEntries);
+        // Initialize with empty array for new user
+        setEntries([]);
         localStorage.setItem(
           `moodJournal_${authState.user.id}_entries`, 
-          JSON.stringify(mockEntries)
+          JSON.stringify([])
         );
       }
     } else {
