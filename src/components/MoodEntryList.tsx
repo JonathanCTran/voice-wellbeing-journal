@@ -62,83 +62,68 @@ const MoodEntryList: React.FC<MoodEntryListProps> = ({ entries }) => {
 
   return (
     <>
-      <div className="space-y-4">
-        {sortedEntries.length === 0 ? (
-          <div className="text-center p-8 border border-dashed border-gray-200 rounded-lg bg-gray-50/50">
-            <p className="text-gray-500">No journal entries yet</p>
-          </div>
-        ) : (
-          sortedEntries.map((entry, index) => (
-            <Card 
-              key={entry.id} 
-              className="bg-gradient-to-r from-white to-gray-50 shadow-md hover:shadow-lg transition-all duration-300 border-l-4"
-              style={{
-                borderLeftColor: entry.sentiment.score > 0.3 ? '#8FD694' : 
-                                entry.sentiment.score < -0.3 ? '#FF8A80' : '#B1D4FE',
-                animationDelay: `${index * 0.1}s`,
-              }}
-            >
-              <CardContent className="p-5">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 mr-4">
-                    <p className="text-sm text-gray-500 mb-2 font-medium">
-                      {format(new Date(entry.createdAt), "MMMM d, yyyy • h:mm a")}
-                    </p>
-                    <p className="line-clamp-3 text-gray-700">{entry.transcript}</p>
-                  </div>
-                  <SentimentBadge sentiment={entry.sentiment} />
+      <div className="space-y-3">
+        {sortedEntries.map((entry) => (
+          <Card key={entry.id} className="bg-white/90 backdrop-blur shadow-sm transition-all hover:shadow-md">
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start">
+                <div className="flex-1 mr-4">
+                  <p className="text-sm text-gray-500 mb-1">
+                    {format(new Date(entry.createdAt), "MMMM d, yyyy • h:mm a")}
+                  </p>
+                  <p className="line-clamp-3">{entry.transcript}</p>
                 </div>
-                
-                {entry.audioUrl && (
-                  <div className="mt-4 pt-3 border-t border-gray-100">
-                    <audio controls src={entry.audioUrl} className="w-full h-8 rounded-md" />
-                  </div>
-                )}
-                
-                <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end space-x-2 opacity-70 hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEditClick(entry)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
-                  </Button>
-                  
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-500">
-                        <Trash className="h-3.5 w-3.5 mr-1" /> Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-white">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete
-                          this journal entry.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                          className="bg-red-500 hover:bg-red-600"
-                          onClick={() => handleDeleteEntry(entry.id)}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                <SentimentBadge sentiment={entry.sentiment} />
+              </div>
+              
+              {entry.audioUrl && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <audio controls src={entry.audioUrl} className="w-full h-8" />
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+              )}
+              
+              <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditClick(entry)}
+                >
+                  <Pencil className="h-4 w-4 mr-1" /> Edit
+                </Button>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50">
+                      <Trash className="h-4 w-4 mr-1" /> Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete
+                        this journal entry.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        className="bg-red-500 hover:bg-red-600"
+                        onClick={() => handleDeleteEntry(entry.id)}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Journal Entry</DialogTitle>
           </DialogHeader>
@@ -152,9 +137,7 @@ const MoodEntryList: React.FC<MoodEntryListProps> = ({ entries }) => {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveEdit} className="bg-mood-blue hover:bg-mood-blue/90">
-              Save Changes
-            </Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
